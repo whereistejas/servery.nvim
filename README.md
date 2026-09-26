@@ -97,6 +97,9 @@ require("servery").setup({
 * `:Sv [dir]`: Go to the session in `[dir]`, creating it if it's not already open
 * `:SvClose`: Close the current session and go to the last visited one
 * `:[N]SvClose`: Close the nth last visited session
+* `:SvName [name]`: Name the current session in the ui (no argument clears it).
+  Unnamed sessions show the title of a terminal running in them, or the
+  focused file
 
 Keymaps should be set up manually:
 

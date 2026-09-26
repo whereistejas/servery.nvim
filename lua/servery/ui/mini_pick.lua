@@ -20,7 +20,7 @@ M.select = function()
 		items = servery.get_picker_items()
 		time = os.time()
 		for _, item in ipairs(items) do
-			item.text = item:display_name()
+			item.text = item:search_text()
 		end
 		return items
 	end
@@ -34,15 +34,20 @@ M.select = function()
 			local icon = item:icon()
 			local status = item:status()
 			local name = item:display_name()
+			local title = item:title() and ("  " .. item:title()) or ""
 			local active_time = item:time_since_active(time) or ""
 			local suffix = active_time ~= "" and ("  " .. active_time) or ""
-			lines[i] = icon .. "  " .. name .. suffix
+			lines[i] = icon .. "  " .. name .. title .. suffix
 
 			local name_col = #icon + 2
 			table.insert(hl_data, { i - 1, 0, #icon, "ServeryIcon" .. status })
 			table.insert(hl_data, { i - 1, name_col, name_col + #name, "ServeryLine" .. status })
+			if title ~= "" then
+				local title_col = name_col + #name
+				table.insert(hl_data, { i - 1, title_col, title_col + #title, "ServeryTitle" })
+			end
 			if active_time ~= "" then
-				local t_col = name_col + #name + 2
+				local t_col = name_col + #name + #title + 2
 				table.insert(hl_data, { i - 1, t_col, t_col + #active_time, "ServeryTime" })
 			end
 		end

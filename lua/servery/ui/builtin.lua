@@ -124,6 +124,7 @@ M.select = function(items)
 
 		for _, part in ipairs({
 			{ item:display_name(), "ServeryLine" .. status },
+			{ item:title() and ("  " .. item:title()) or "", "ServeryTitle" },
 			{ spacer },
 			{ run_time, "ServeryTime" },
 		}) do

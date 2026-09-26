@@ -114,6 +114,29 @@ function PickerItem:display_name()
 	end
 end
 
+---A short description of what the session is doing: the name set with
+---`:SvName`, or the title of a terminal in the session, or the focused file.
+---A trailing " - <dir>" is dropped since the directory is already shown.
+---@return string?
+function PickerItem:title()
+	local title = self.server and self.server.title
+	if not title then
+		return
+	end
+	local dir = vim.pesc(vim.fs.basename(self.cwd))
+	for _, sep in ipairs({ "-", "–", "—", "|", ":" }) do
+		title = title:gsub("%s+" .. vim.pesc(sep) .. "%s+" .. dir .. "$", "")
+	end
+	return title
+end
+
+---Text for pickers to match against: the display name plus the title
+---@return string
+function PickerItem:search_text()
+	local title = self:title()
+	return self:display_name() .. (title and (" " .. title) or "")
+end
+
 function PickerItem:detach()
 	if self.server then
 		local chan = vim.fn.sockconnect("pipe", self.server.socket, { rpc = true })
@@ -127,6 +150,7 @@ end
 ---@class servery.ServerInfo
 ---@field socket string
 ---@field original_cwd string?
+---@field title string?
 ---@field useractive integer
 ---@field starttime integer
 
@@ -139,6 +163,7 @@ local highlights = {
 	ServeryIconActive = { link = "@label" },
 	ServeryIconInactive = { link = "ComplHint" },
 	ServeryTime = { link = "Comment" },
+	ServeryTitle = { link = "Comment" },
 }
 
 local set_highlights = function()
@@ -203,6 +228,10 @@ local setup_cmd = function()
 	vim.api.nvim_create_user_command("SvClose", function(args)
 		M.close({ prev = args.count > 0 and args.count or nil })
 	end, { count = true })
+
+	vim.api.nvim_create_user_command("SvName", function(args)
+		vim.g.servery_name = args.args ~= "" and args.args or nil
+	end, { nargs = "?" })
 end
 
 M.cfg = nil --[[@as servery.Cfg?]]
@@ -233,6 +262,53 @@ end
 
 local nilify = function(x) return not x == vim.NIL and x end
 
+-- Runs in each server to work out its title; see PickerItem:title()
+local title_code = [[
+	local name = vim.g.servery_name
+	if type(name) == "string" and name ~= "" then
+		return name
+	end
+
+	local is_float = function(win) return vim.api.nvim_win_get_config(win).relative ~= "" end
+	local term_title = function(win)
+		local buf = vim.api.nvim_win_get_buf(win)
+		local title = vim.bo[buf].buftype == "terminal" and vim.b[buf].term_title
+		if type(title) == "string" and title ~= "" and not vim.startswith(title, "term://") then
+			return title
+		end
+	end
+
+	-- The picker itself may be focused, so look past floating windows
+	local wins = vim.tbl_filter(function(w) return not is_float(w) end, vim.api.nvim_tabpage_list_wins(0))
+	local cur = vim.api.nvim_get_current_win()
+	if is_float(cur) then
+		local prev = vim.fn.win_getid(vim.fn.winnr("#"))
+		cur = prev ~= 0 and not is_float(prev) and prev or wins[1]
+	end
+	if not cur then
+		return nil
+	end
+
+	local title = term_title(cur)
+	if title then
+		return title
+	end
+	for _, win in ipairs(wins) do
+		title = term_title(win)
+		if title then
+			return title
+		end
+	end
+
+	for _, win in ipairs({ cur, unpack(wins) }) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		local file = vim.api.nvim_buf_get_name(buf)
+		if vim.bo[buf].buftype == "" and file ~= "" then
+			return vim.fn.fnamemodify(file, ":~:.")
+		end
+	end
+]]
+
 ---@return servery.PickerItemServer
 local get_server_info = function(server)
 	local chan = vim.fn.sockconnect("pipe", server, { rpc = true })
@@ -255,6 +331,8 @@ local get_server_info = function(server)
 			{}
 		)) --[[@as string?]],
 	})
+	local title = vim.rpcrequest(chan, "nvim_exec_lua", title_code, {})
+	out.server.title = type(title) == "string" and title or nil
 	vim.fn.chanclose(chan)
 	return out
 end
