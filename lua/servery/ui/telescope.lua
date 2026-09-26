@@ -27,6 +27,7 @@ M.select = function()
 			{ width = 2 },
 			{ remaining = true },
 			{ remaining = true },
+			{ remaining = true },
 		},
 	})
 
@@ -37,6 +38,7 @@ M.select = function()
 		return displayer({
 			{ item:icon(), "ServeryIcon" .. status },
 			{ item:display_name(), "ServeryLine" .. status },
+			{ item:title() or "", "ServeryTitle" },
 			{ item:time_since_active(time) or "", "ServeryTime" },
 		})
 	end
@@ -46,7 +48,7 @@ M.select = function()
 		return {
 			value = item,
 			display = make_display,
-			ordinal = item:display_name(),
+			ordinal = item:search_text(),
 		}
 	end
 

@@ -26,6 +26,7 @@ local format_item = function(item, hl)
 		{ icon, "ServeryIcon" .. status },
 		{ "  " },
 		{ item:display_name(), "ServeryLine" .. status },
+		{ item:title() and ("  " .. item:title()) or "", "ServeryTitle" },
 		active_time and { "  " },
 		active_time and { active_time, "ServeryTime" },
 	}

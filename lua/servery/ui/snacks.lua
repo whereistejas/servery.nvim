@@ -35,7 +35,7 @@ M.select = function()
 		finder = function()
 			local new_items = servery.get_picker_items() --[[@as snacks.picker.finder.result]]
 			for i, item in ipairs(new_items) do
-				item.text = item:display_name()
+				item.text = item:search_text()
 				item.idx = i
 			end
 			return new_items
@@ -48,6 +48,7 @@ M.select = function()
 				{ icon, "ServeryIcon" .. status },
 				{ "  ", "Normal" },
 				{ item:display_name(), "ServeryLine" .. status },
+				{ item:title() and ("  " .. item:title()) or "", "ServeryTitle" },
 				{ "  ", "Normal" },
 				{ item:time_since_active(), "ServeryTime" },
 			}
